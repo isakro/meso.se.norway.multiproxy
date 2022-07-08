@@ -1,20 +1,20 @@
 ---
-title: "Title Goes Here"
+title: "Inductive multi-proxy analysis of Mesolithic demographics along the Norwegian Skagerrak coast"
 author:
-  - Myfirstname Mylastname:
-      email: fl@oneplace.edu
-      institute: [UofO]
+  - Isak Roalkvam:
+      email: isak.roalkvam@iakh.uio.no
+      institute: [iakh]
       correspondence: true
-  - Yourfirstname Yourlastname:
-      email: fl@another.edu
-      institute: [UofA]
+  - Steinar Solheim:
+      email: steinar.solheim@khm.uio.no
+      institute: [mch]
       correspondence: false
 institute:
-  - UofO: University of One Place
-  - UofA: University of Another Place
+  - iakh: Institute of Archaeology, Conservation and History, University of Oslo
+  - mch: Museum of Cultural History, University of Oslo
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
-    bookdown::word_document2:
+    bookdown::pdf_document2:
       fig_caption: yes
       reference_docx: "../templates/template.docx" # Insert path for the DOCX file
       pandoc_args:
@@ -31,15 +31,10 @@ highlights: |
   These are the highlights. 
 ---
 
-<!-- This is the format for text comments that will be ignored during renderings. Do not put R code in these comments because it will not be ignored. -->
-
-<!-- With the following code you can access and display values from the yml header above. -->
-
 Keywords: `r rmarkdown::metadata$keywords`
 
 Highlights: `r rmarkdown::metadata$highlights`
 
-<!-- The following code chunk defines some general settings how code chunks should behave. -->
 
 ```{r setup, echo = FALSE}
 knitr::opts_chunk$set(
@@ -53,36 +48,35 @@ knitr::opts_chunk$set(
 )
 ```
 
-<!-- The actual document text starts here: -->
-
 # Introduction
+This paper reports on and contrasts multiple proxies for relative population densities in the context of the Mesolithic Skagerrak coast in south-eastern Norway. Population size is regarded by many as one of the prime movers of cultural variation, and as such, getting at this dimension is of critical importance to our understanding of the past societies in the region. In recent years, radiocarbon dates have been frequently used as one such proxy, including in Norwegian Stone Age archaeology. The potentially immense and relative ease of implementation has undoubtedly contributed to the popularity of the method. Several limitations and forms of critisism has been directed at the method. Some of these are of a methdological nature, many of which have been addressed, while others pertain to the fundamental premise of the "dates as data" premise.  
 
-Here is a citation [@Marwick2017]
+In an attempt to get at this relationship. While the radiocarbon record has been compared to site frequency as derived from shoreline dated sites in the past, we aim to demonstrate here how the nature of this dating method has not been taken properly into account in these studies.   
 
 # Background
 
-# Methods
+# Methods and data
+
+Surveyed sites were retrieved from the national heritage database Askeladden. A total of 1318 records were retrieved. These were then manually reviewed and given a quality score based on the criteria in  [see @roalkvam2020]. This resulted in 1310 sites in total. 
+
+While excavated volume is generally reported, there are some instances where this is not as clearly presented and had to be estimated based on descriptions of the excavation [e.g. @reitan2019]. These estimates might be slightly off, but are not considered to be of
+
+To illustrate the technique, an example shoreline date is provided in figure. Unlike previous applications which have simply summed the point estimates of shoreline dated sites within relatively arbitrary bins of 100, 200 or 500 years, the approach taken here aims to take account of the uncertainty in the trajectory of sea-level change and the uncertainty in the distance between the sites and their contemporenous shoreline. 
+
+In much the same way as characteristics of the  calibration curve can introduce bias to the SPD, the same is true for the summed shoreline dates. To account for this, previous studies have simulated a based on some defined null model. A similar approach is attempted here, with some important adjustments to meet the idiosyncrasies of shoreline dating. First of all the shoreline displacement curves, which in this setting are analogous to the radiocarbon calibration curve, are interpolated to each site location based on its location along a south-west--north-east gradient meaning that each site is effectively associated with a unique shoreline displacement curve. 
+
+As the computational cost of interpolating the shoreline displacement trajectory to each simulated location would be too high, one shoreline displacement curve was initially interpolated to each kilometre interval running perpendicular to the gradient in sea-level fall, between the extremes of the distribution of sites.  These one-kilometre intervals were then assigned a probability weight based on how the density of observed sites is distributed among them.  
+
+A sample of calendar dates are drawn from the observed date range, where the probability of drawing any individual year is determined by the null-model of choice. A draw is then made among the possible one-kilometre intervals. The calendar date is then "back-calibrated" -- to follow the SPD terminology -- to an elevation range. A single elevation is then drawn uniformly using intervals of 5cm from this range which then is shoreline dated using the current shoreline displacement curve and the default decay ratio of. 
+
+
+Following @crema2021, the null model is  This is very much analogous to how previous studies have employed Monte Carlo simulation to take into account the nature of the calibration curve when conducting palaeodemographic modelling using radiocarbon dates. However, in this case it is not only the spatially contingent variability in sea-level change that dictates how the simulation should be perfomed, but also the fact that not only the velocity but also the physical setting might introduce a bias in the estimates. Thus, to perform a comparable simulation, the Monte Carlo-generated envelope that is employed here is based on generating random points in the landscape under study. This done both to take account of the variable trajectory of sea-level change and the potentially variable altitudinal characteristics of the landscape. If some altitudes are more common than others, what might e observed when simply might be a reflection of the characteristics of the landscape, and not a demographic signal.  
+
+Given that the shoreline displacement curves have a uniform uncertainty range between a upper and a lower limit, flat parts of the displacement curve does not lead to the issue of infinite intercepts that characterises the calibration of radiocarbon dates [see @weninger]. Normalisating the shoreline dates to to sum to unity will therefore not create spurious spikes in the SPD as the probability of the shoreline dates will never sum to more than one [cf. @crema2022; @weninger2009]. 
+
+To generate a critical envelope from the 
 
 # Results
-
-<!-- Here's some example analysis code: -->
-
-```{r get-data, eval = FALSE}
-# Note the path that we need to use to access our data files when rendering this document
-my_data <- read.csv(here::here('analysis/data/raw_data/my_csv_file.csv'))
-```
-
-```{r demo-plot, fig.cap="A plot of random numbers"}
-plot(rnorm(10))
-```
-
-Figure \@ref(fig:demo-plot) shows how we can have a caption and cross-reference for a plot
-
-```{r demo-inline-code}
-x <- round(pi, 2)
-```
-
-Here is an example of inline code `r x` in the middle of a sentence. 
 
 # Discussion
 
@@ -100,20 +94,3 @@ Here is an example of inline code `r x` in the middle of a sentence.
 
 <div id="refs"></div>
 
-\newpage
-
-### Colophon
-
-This report was generated on `r Sys.time()` using the following computational environment and dependencies: 
-
-```{r colophon, cache = FALSE}
-# which R packages and versions?
-if ("devtools" %in% installed.packages()) devtools::session_info()
-```
-
-The current Git commit details are:
-
-```{r}
-# what commit is this file at? 
-if ("git2r" %in% installed.packages() & git2r::in_repository(path = ".")) git2r::repository(here::here())  
-```
