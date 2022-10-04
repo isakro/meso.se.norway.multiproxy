@@ -1,5 +1,5 @@
 ---
-title: "Inductive multi-proxy analysis of Mesolithic population dynamics on the Norwegian Skagerrak coast"
+title: "Inductive multi-proxy analysis of Mesolithic demographics on the Norwegian Skagerrak coast"
 author: 
 - 'Isak Roalkvam'
 - 'University of Oslo, Institute of Archaeology, Conservation and History'
@@ -18,7 +18,7 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
     bookdown::pdf_document2:
       fig_caption: yes
-      # toc: false
+      toc: false
       reference_docx: "../templates/template.docx" # Insert path for the DOCX file
       pandoc_args:
       # - --lua-filter=../templates/scholarly-metadata.lua
@@ -26,17 +26,17 @@ output:
       - --lua-filter=../templates/pagebreak.lua
 bibliography: references.bib
 csl: "../templates/journal-of-archaeological-science.csl" # Insert path for the bib-style
-abstract: |
-  Text of abstract
-keywords: |
-  keyword 1; keyword 2; keyword 3
-highlights: |
-  These are the highlights. 
+# abstract: |
+#   Text of abstract
+# keywords: |
+#   keyword 1; keyword 2; keyword 3
+# highlights: |
+#   These are the highlights. 
 ---
 
-Keywords: `r rmarkdown::metadata$keywords`
+<!-- Keywords: `r rmarkdown::metadata$keywords` -->
 
-Highlights: `r rmarkdown::metadata$highlights`
+<!-- Highlights: `r rmarkdown::metadata$highlights` -->
 
 
 ```{r setup, echo = FALSE}
@@ -49,65 +49,116 @@ knitr::opts_chunk$set(
   fig.path = "../figures/",
   dpi = 300
 )
+
+knitr::opts_knit$set(
+  eval.after = "fig.cap"
+)
+
+# Set-up so that I can call floatbarrier using regfloat=TRUE in the chunk 
+# headings. See: 
+# https://gist.github.com/burchill/8873d2ade156b27e92a238a774ce2758
+knitr::knit_hooks$set(plot = function (x, options) {
+  float_correct <- function(f, y, opts)  {
+    if (is.null(opts$regfloat) || opts$regfloat==FALSE)
+      paste0(f(y, opts), "\n\n\\FloatBarrier\n")
+    else
+      f(y, opts)
+  }
+  if (!is.null(options$out.width) || !is.null(options$out.height) ||
+      !is.null(options$out.extra) || options$fig.align != "default" ||
+      !is.null(options$fig.subcap)) {
+    if (is.null(options$fig.scap))
+      options$fig.scap = NA
+    return(float_correct(knitr:::hook_plot_tex, x, options))
+  }
+  return(float_correct(knitr:::hook_plot_md_base, x, options))
+})
 ```
 
+```{r packages, echo = FALSE}
+library(here)
+library(dplyr)
+library(kableExtra)
+library(sf)
+```
+
+```{r data, include = FALSE}
+surveyed <- st_read(here("analysis/data/raw_data/surveyed_sites.gpkg"))
+```
+
+
 # Introduction
-Population size is regarded as one of the primary drivers of cultural variation and is therefore of critical importance to our understanding of past human societies [@shennan2000]. In recent years, frequency of radiocarbon dates have been used extensively as one proxy for relative population size [e.g. @french2021; @crema2022], including in Norwegian Stone Age archaeology [@solheim2018a; @solheim2020a; @nielsen2019; @nielsen2021; @bergsvik2021; @jorgensen2020; @lundstrom2021]. The potentially immense value of insights into past population dynamics, combined with the ubiquity of radiocarbon dates and the relative ease with which these can be processed within a so-called dates as data methodology has undoubtedly contributed to its popularity. Several limitations and forms of criticism has been directed at the approach. Some of these are of a methodological nature, while others pertain to the underlying logic. What appears to be agreed upon by practitioners and critics alike is that radiocarbon dates are best utilised in this way when compared and contrasted to other proxies for past population dynamics and other variables that might impact these [@french]. This paper reports on and attempts to unpick the relationship between two measures that have been linked to relative population sizes in the context of the Mesolithic Skagerrak coast in south-eastern Norway, namely summed radiocarbon and site frequency as evidenced by shoreline dating.
-
-Large parts of the post-glacial landscape of Northern Scandinavia is characterised by dramatic isostatic uplift that has led to a net sea-level fall throughout the Holocene, despite eustatic sea-level rise. As coastal foragers appear to have predominantly settled on or close to the shoreline, this can be utilised to assign an approximate date to the sites, based on their present-day altitude above sea-level---a method known as shoreline dating. In a recent study, @roalkvam2023 has presented a formalised method for shoreline dating which takes into account the likely elevation of the sites above the shoreline when they were in use. This thus provides a absolute dating method with an associated probability distribution.
-
-However, the shoreline dating of sites will reflect site frequency over time, which can also be affected by variables other than population size. In hunter-gatherer research, one of the most important of these is mobility strategies and settlement patterns. Drawing on , @roalkvam2022 demonstrated that the relationship between the volumetric density and the proportion of secondarily worked lithics in the artefact inventories of the sites appears to capture the main characteristics of their associated land-use and mobility patterns. This relationship, here instantiated as a 'curation index', is therefore included in an attempt to control for mobility patterns in the analysis.
-
-The title of this paper includes the word 'inductive' to indicate that while some speculative thoughts concerning the relationship between the three above-outlined variables underlie the analysis, these could not be instantiated as concrete hypotheses. The data has thus been explored (or even dredged), using a wide range of techniques. As the Skagerrak coast
-
+Population size is regarded as one of the primary drivers of cultural variation, and is of critical importance to our understanding of past human societies [@shennan2000]. The frequency distribution of radiocarbon dates has been used extensively as one proxy for past relative population sizes [e.g. @crema2022; @french2021], including in Norwegian Stone Age archaeology [@solheim2018a; @solheim2020a; @nielsen2019; @nielsen2021; @bergsvik2021; @jorgensen2020; @lundstrom2021]. The potentially immense value of insights into past population dynamics, combined with the ubiquity of radiocarbon dates and the relative ease with which these can now be processed within what has been termed a dates as data methodology has undoubtedly contributed to the popularity of the approach. Several limitations and forms of criticism have, however, been directed at these procedures. Some of the objections are of a methodological nature, while others pertain to the underlying logic and the degree to which there is likely to be a direct connection between the frequency of ^14^C-dates and population dynamics [@carleton2021; @torfing2015]. What appears to be agreed upon by practitioners and critics alike is that radiocarbon dates are best analysed in this manner when compared and contrasted to other proxies for past population dynamics and other variables that might impact these [@french2016; @palmisano2017]. This paper reports on and attempts to unpack the relationship between two measures that have been linked to relative population size in the context of the Mesolithic Skagerrak coast in south-eastern Norway, namely summed probability distribution of calibrated radiocarbon dates and the summed probability distribution of shoreline dated sites (hereafter RSPD and SSPD, respectively).
 
 # Background
+Large parts of the post-glacial landscape of Northern Scandinavia is characterised by dramatic isostatic uplift that has led to a net sea-level fall throughout the Holocene, despite eustatic sea-level rise [e.g. @mörner1979]. As coastal foragers appear to have predominantly settled on or close to the contemporaneous shoreline, this can be utilised to assign an approximate date to the sites. This is done by coupling the present-day altitude of the sites with reconstructions of past shoreline displacement---a method known as shoreline dating. This is not least useful for dating the large number of surveyed sites in the region where other temporal data that often follow with an excavation are not available, such as radiocarbon dates or typological indicators in artefact inventories. 
 
+The frequency of shoreline dated sites has also been compared to RSPDs in the past [@solheim2018; @tallavaara2020]. However, this has been done by finding point estimates of shoreline dates that are then aggregated in somewhat arbitrary bins of 200 or 500 years. This therefore does not take into account the uncertainty in the distance between the sites and the contemporaneous shoreline, nor the impact the variability in the rate of sea-level change has on the precision of the dates that can be achieved with the method. In a recent study, @roalkvam2022b has presented a probabilistic method for shoreline dating that takes these parameters into account, thus setting the stage for a more refined investigation of the relationship between frequency of ^14^C-dates and shoreline dated sites. The parametrisation of the method is based on simulating the distance between sites with ^14^C-dates and the prehistoric shoreline along the Skagerrak coast between Horten municipality in the northeast to Arendal municipality in the southwest (see map in Figure \@ref(fig:map)). The results of this indicate that the sites tend to have been located close to the shoreline until just after 4000 BCE when a few sites become more withdrawn from the shoreline, followed by a clear break around 2500 BCE, at which point shoreline dating appears to loose its utility. Thus, these geographical and temporal limits are also used for this study.   
 
-dates as data approach for modelling population dynamics. However, to what degree the radiocarbon record is determined by past population dynamics is not entirely clear, and might vary both geographically and chronologically, based on variation in investigatory factors as well as cultural processes within prehistoric populations. One example of the latter is the difference that can be expected between farmer and forager populations, where have suggested that an increased per capita energy consumption introduced with farming means that a single ^14^C-date should not be weighted equally when making relative population estimates across such populations.
+The title of this paper includes the word 'inductive' to indicate that while some speculative thoughts concerning the relationship between the above-outlined variables underlie the analysis, these could not be instantiated as concrete hypotheses. The data have thus been explored using a wide range of techniques in an attempt to unpick patterns and grasp the relationship between the variables. The dates as data approach is dependent on there being a direct link between the past generation of material that ultimately become ^14^C samples and population size. The sum of shoreline dated sites, on the other hand, is determined by site frequency, and if used as a proxy for population size is therefore dependent on there being a connection between site count and population size. If a comparison of these proxies do not or only partially correspond, it is thus an open question what factors have impacted either distribution to cause this discrepancy, and which measure, if any, reflect true population dynamics. The issue will therefore initially demand an open and exploratory approach where a multitude of explanatory and confounding effects can be drawn on to explain any observed pattern. 
 
-The dates-as-data approach is dependent on there being a direct link between the past generation of material that ultimately become ^14^C samples and population size. The sum of shoreline dated sites, on the other hand, is instead determined by site frequency, and if used as a proxy for population size is therefore dependent on there being a connection between site count and population size. If a comparison of these proxies do not match it is thus an open question what factors have impacted either distribution to cause this discrepancy, and which measure, if any, directly reflect true population dynamics. 
+To what degree the radiocarbon record is determined by past population numbers might vary both geographically and chronologically, based on variation in investigatory and taphonomic factors [@surovell2009b; @bluhm2019], as well as cultural processes within prehistoric populations. One example of the latter is the difference that might exist between farmer and forager populations, where @freeman2018 have suggested that an increased per capita energy consumption introduced with farming means that ^14^C-dates should not be weighted equally when making relative population estimates across such populations. Similarly, while site counts have also been invoked for the analysis of past population dynamics, these are likely to be impacted by factors such as settlement nucleation and dispersion, as well as land-use and mobility patterns [@palmisano2017]. However, these could be considered theoretical issues that have implications for how fluctuations in these proxies should be interpreted. Before any such fluctuations are given any substantive interpretation, however, there are a host of methodological issues that have to be considered.
 
- whether this is the result of factors that impact these measures differently
+The most critical of these follow from the fact that the summation of the probabilities associated with the dates for the SPDs is not a statistically coherent procedure. This is because the summed probabilities can no longer been seen as probabilities but is rather the combination of events and uncertainties, making the two indistinguishable, and rendering the interpretation of the resulting sum difficult [@blackwell2003; @crema2022]. As @timpson2021[2] put it: 'the SPD is not *the* single best explanation of the data, nor even *a* explanation of the data, but rather a conflation of many possible explanations simultaneously, each of which is mired by the artefacts inherited from the calibration wiggles.' The SPD is not a model. It is the combined representation of a range of possible explanations for the data---the frequency of dated events combined with the variable uncertainty associated with these [@carleton2021]. This means that an SPD cannot be used directly to draw inferences on population dynamics, nor can it be directly compared to other time-series data [@carleton2018]. While this problem can never be entirely resolved, a range of approaches have been developed in an attempt to work around this issue.
 
-For example @timpson2021 put this well: 'the SPD is not *the* single best explanation of the data, nor even *a* explanation of the data, but rather a conflation of many possible explanations simultaneously, each of which is mired by the artefacts inherited from the calibration wiggles.' The SPD is not a model. It is the combined representation of a range of possible explanations for the data---the frequency of dated events combined with the variable uncertainty associated with these. This means that an SPD cannot be used directly to draw inferences on population dynamics, nor can it be directly compared to other time-series data. 
-
-RSPDs in Norway have most commonly been used within a null-hypothesis significance testing approach by means of Monte Carlo simulation, as introduced by [@shennan2013]. This works by comparing the observed RSPD with a series of simulated RSPDs generated from a null-model. These null-models are typically a uniform model and/or a exponential or logistic model, fit to the observed RSPD by means of direct regression. The result from these simulations are then used to create a 95% critical envelope representing the null-model. The proportion of the observed RSPD that falls outside this envelope is then used to estimate a p-value indicating whether the null-model can be rejected. In the case that it can, the portions of the observed RSPD that falls outside this envelope can subsequently be interpreted as representing potentially meaningful demographic events, relative to the null-model. However, care has to be taken in how these should be interpreted and a degree of inferential modesty. Apart from the fundamental, this follows from. First of all, the null model
-
-After rejecting the null of either uniform or one exponential model growth rate, that is to say, after concluding that these models do not describe the underlying population dynamics, one then goes on to interpret the deviances from these null models as indications of population boom and busts. However, 
+The most commonly applied of these is a null-hypothesis significance testing approach by means of Monte Carlo simulation, as introduced by [@shennan2013]. This works by comparing the observed RSPD with a series of simulated RSPDs generated from a null-model. These null-models are typically a exponential or logistic model, fit to the observed RSPD by means of regression, or a uniform model. The result from these simulations are then used to create a 95% critical envelope representing the null model. The proportion of the observed RSPD that falls outside this envelope is then used to estimate a p-value indicating whether the null model can be rejected. In the case that it can, the portions of the observed RSPD that falls outside this envelope can subsequently be interpreted as representing potentially meaningful demographic events, relative to the null model. However, care has to be taken in how these should be interpreted and inferential modesty is called for [@timpson2021]. First, this follows from the fact that 5% of the deviations from the critical envelope can be expected to be random, and there is no way to know which deviations this pertains to. Secondly, the p-value only indicates whether or not the null model can be rejected as an explanation of the data, and does not provide statistical justification for interpreting the deviations themselves as meaningful demographic signals. Finally, a for example exponential null model fit to the data is only one of an infinite set of exponential models with different growth rates that could be used. While a model fit by means of regression will likely have a reasonable, if not the most probable growth rate, and by extension exclude most other exponential fits as likely to explain the data, this can be difficult to determine. Nonetheless, while there are limitations to this methodology, combining the SPD with a Monte Carlo approach does represent a reasonable starting point for the analysis of the data as long as the substantive interpretation of the findings remain conservative [@crema2022; @timpson2021]. 
 
 # Methods and data
 
-Radiocarbon dates were retrieved from. Dates done on food crusts were excluded due to the marine reservoir effect [@nilesen2021]. The dates for each site were then binned in 200-year bins to reduce the impact of.  
+Sites surveyed by means of test-pitting between Horten and Arendal were initially retrieved from the national heritage database Askeladden [@directorate2018], totalling at `r nrow(surveyed)` records. Any sites situated higher than the marine limit, the highest elevation that the sea reached after the end of the last Ice Age, were then excluded. The remaining records were then manually reviewed and given a quality score based on the criteria in Table \@ref(tab:tab1), indicating the degree to which the spatial location and extent of the sites is believed to be represented in the geometries available in the database [see also @roalkvam2020]. All sites with a quality score of 4 or worse were excluded from further analysis. Data on excavated sites was originally compiled for @roalkvam2022b and has been compared with site data as listed in @damlien2021 and @nielsen2022. Only excavated sites with available spatial data in Askeladden or local databases at the Museum of Cultural History of the University of Oslo were included in the analysis. The 102 excavated sites that have previously been shoreline dated were included in the SSPD along with the retained surveyed sites, giving a total of 934 shoreline dated sites in the SSPD. The borders of the municipalities where the shoreline dated sites are located were used to limit the radiocarbon sample. Radiocarbon dates were taken from @roalkvam2022b and @solheim. Dates done on food crusts were excluded due an issue with marine reservoir effects [@nielsen2019, 83].
 
-Sites surveyed by means of test-pitting were retrieved from the national heritage database Askeladden. A total of 1318 records were retrieved. These were then manually reviewed and given a quality score based on the criteria in Table [see @roalkvam2020]. This resulted in 1310 sites in total. 
+All analyses done in this study were performed using the R programming language [@rcoreteam]. Underlying data and programming code used for the paper is available in an online repository at X. This is structured as a research compendium following @marwick2018b, to allow for reproducibility of the results [@Marwick2017]. In addition to this, the R package *shoredate*, used for performing and handling the shoreline dating of sites within the study area, is actively being developed and was used for the parts of the analysis that deal with shoreline dates (available from https://github.com/isakro/shoredate).
 
-While excavated volume is generally reported, there are some instances where this is not as clearly presented and had to be estimated based on descriptions of the excavation [e.g. @reitan2019]. These estimates might be slightly off, but are not considered to be of
+```{r map, echo = FALSE, fig.cap = "Map of the study area and analysed sites. Black lines indicate the borders between municipalities. The surveyed sites included in the analysis are the ones given a quality score of 3 or better using the framework in Table 1. Of the excavated sites, 102 have been dated by means of shoreline dating.", out.width = "500px", fig.align="center", regfloat = TRUE}
+knitr::include_graphics(here("analysis/figures/map.png"))
+```
 
-To illustrate the technique, an example shoreline date is provided in figure. Unlike previous applications which have simply summed the point estimates of shoreline dated sites within arbitrary bins of 100, 200 or 500 years, the approach taken here aims to take account of the uncertainty in the trajectory of sea-level change and the uncertainty in the distance between the sites and their contemporaneous shoreline. 
+## Summed probability of calibrated radiocarbon dates
 
-In much the same way as characteristics of the calibration curve can introduce bias to the SPD, the same is true for the summed shoreline dates. To account for this, previous studies have simulated a based on some defined null model. A similar approach is adopted here, with some important adjustments to meet the idiosyncrasies of shoreline dating. First of all the shoreline displacement curves are interpolated to each site location based on its location along a south-west--north-east gradient, meaning that each site is effectively associated with a unique shoreline displacement curve. With the analogy to the radiocarbon methodology, this would be equivalent to each date being associated with a unique calibration curve. As it would not have been computationally tractable to interpolate a shoreline displacement curve to each simulated shoreline date, we instead interpolated a displacement curve to the centre of every 2.5km interval along the gradient. These in total 87 intervals were then assigned a probability weight based on how the density of sites 
+Analysis of the ^14^C-dates were all done using the *rcarbon* package [@crema2021] for R. To account for investigatory bias that can result from variable sampling intensity between sites, the radiocarbon dates were initially binned and dates were aggregated on a site by site basis if they fell within 200 uncalibrated ^14^C years of each other. When calibrated, these are summed and normalised to sum to unity before being included in the final RSPD. Individual ^14^C-dates were not normalised. This follows from a peculiarity in the calibration procedure which can lead the probability mass of a date to sum to more than one [@weninger2015]. As a consequence of this, normalising the dates before summing has been shown to create spurious spikes in the RSPD. All calibration was done using the IntCal20 calibration curve [@reimer2020]. 
 
-As the computational cost of interpolating the shoreline displacement trajectory to each simulated location would be too high, one shoreline displacement curve was initially interpolated to the centre of each of a series of 2.5km intervals running perpendicular to the gradient in sea-level fall between the extremes of the distribution of sites. These in total 87 intervals were then assigned a probability weight based on how the density of observed sites is distributed among them.  
+The resulting RSPD was then subjected to the null-hypothesis testing approach through Monte Carlo simulation, as introduced above [see @shennan2013]. This works by first fitting a model to the observed RSPD. Here this was an exponential model, fit by means of regression, and a uniform model. A series of individual calendar years are then drawn from this distribution with replacement, the number of which equals the number of bins in the observed RSPD. These are then 'uncalibrated' to a single value on the ^14^C scale and a random error from among the observed errors are added to the date. These are then calibrated back to the calendar scale and finally summed. Here this procedure was repeated 1000 times for each null model. The 2.5th and 97.5th quantile of the resulting summed probability for each year across all simulations were then retrieved to create the 95% critical envelope with which to compare the observed RSPD. The degree to which the observed curve deviates from the critical envelope is then used to calculate a global p-value, indicating whether or not the null model can be rejected. 
 
-A sample of calendar dates are drawn from the observed date range in the SSPD, where the probability of drawing any individual year is determined by the null-model of choice. Each sampled date is then assigned one of the 87 displacement curves, the probability of which is weighted by the density of observed sites within each 2.5km interval. The calendar date is then "back-calibrated"---to follow the SPD terminology---to an elevation range from which a single elevation value is then drawn with a uniform probability, using intervals of 5km. This elevation value is then shoreline dated using the displacement curve for the relevant 2.5km interval and the default decay ratio of. 
 
-These in total 87 intervals were then assigned a probability weight based on how the density of observed sites is distributed among them. 
+```{r tab1}
+# Table. Overview of chronological framework.
+Quality <- c(1, 2, 3, 4, 5, 6)
+Definition <- c("Site delineated by use of a GNSS-device, or a securely georeferenced record. Extensive database entry.", "Secure spatial data. Slight disturbance of the site or somewhat lacking database record.", "Secure spatial data. Damaged site, such as outskirts of a quarry, and/or very limited database entry.", "Surveyed by archaeologists. However, the database entry is extremely limited/unclear, the site geometry is only given\\\\as a point or small automatically generated circle, and/or finds are from the topsoil of a field.", "Likely site but uncertain spatial information. Typical example is recurring stray finds in a field or other larger area.", "Single stray find or unverified claims/suggestions of possible site.")
+Count <- c(nrow(filter(surveyed, quality == 1)), nrow(filter(surveyed, quality == 2)), nrow(filter(surveyed, quality == 3)), nrow(filter(surveyed, quality == 4)),
+           nrow(filter(surveyed, quality == 5)), nrow(filter(surveyed, quality == 6)))
 
-Following @crema2021, the null model is  This is very much analogous to how previous studies have employed Monte Carlo simulation to take into account the nature of the calibration curve when conducting palaeodemographic modelling using radiocarbon dates. However, in this case it is not only the spatially contingent variability in sea-level change that dictates how the simulation should be perfomed, but also the fact that not only the velocity but also the physical setting might introduce a bias in the estimates. Thus, to perform a comparable simulation, the Monte Carlo-generated envelope that is employed here is based on generating random points in the landscape under study. This done both to take account of the variable trajectory of sea-level change and the potentially variable altitudinal characteristics of the landscape. If some altitudes are more common than others, what might e observed when simply might be a reflection of the characteristics of the landscape, and not a demographic signal.  
+df <- data.frame(Definition, Quality, Count)
 
-Given that the shoreline displacement curves have a uniform uncertainty range between a upper and a lower limit, flat parts of the displacement curve does not lead to the issue of infinite intercepts that characterises the calibration of radiocarbon dates [see @weninger]. Normalisating the shoreline dates to to sum to unity will therefore not create spurious spikes in the SPD as the probability of the shoreline dates will never sum to more than one [cf. @crema2022; @weninger2009]. 
+kableExtra::kable(df, booktabs = TRUE,
+      caption = "Quality scoring of site records of surveyed sites retrieved from the national heritage database Askeladden. The scoring system was first used in Roalkvam (2020).", escape = FALSE) %>% kableExtra::kable_styling(latex_options= c("striped", "scale_down"), stripe_color = "gray!20",)
+```
 
-To generate a critical envelope from the 
+## Summed probability of shoreline dated sites
 
-The curation index is based on. Sites which have signifcant typological indicators from multiple phases have therefore been excluded. Sites which are typologically unified, but where radiocarbon dates suggest multiple settlement phases. 
+Summing the probability of the shoreline dated sites and evaluating the results follows the same structure as that for radiocarbon dates, but idiosyncrasies in the dating method does necessitate some adjustments. First, an illustration of the procedure for shoreline dating a single site, as suggested in @roalkvam2022b, is provided in Figure \@ref(fig:shoredate). Four geologic reconstructions of shoreline displacement in the region lays the foundation for the method as implemented here. These shoreline displacement curves are from Horten [@romundset2021], Larvik [@sørensen2014; @sørensen2014b; @sorensen2023], Tvedestrand [@romundset2018; @romundset2018b] and Arendal [@romundset2018b], each associated with a shoreline isobase along which the trajectory for relative sea-level change has been the same [e.g. @svendsen1987]. The first step in the dating procedure is therefore to interpolate the shoreline displacement to the location to be dated.  This is done by inverse distance weighting [e.g. @conolly2020], interpolating the sea-level for each calendar year along the geologic shoreline displacement curves based on the distance from the site to be dated to the isobases of the curves. The likely elevation of the site above the sea-level when it was in use is defined by a function for exponential decay with a decay ratio of 0.168, starting from the elevation of the site [for details see @roalkvam2022b]. This probability is sequentially stepped through at increments of 0.1m and transferred to the calendar year scale by uniformly distributing the probability across each calendar year in the range between the lower and upper limit of the interpolated displacement curve, resulting in the shoreline date. Given that the shoreline displacement curves are monotonic, the shoreline dates are normalised to sum to unity as this should not create spurious spikes in the SSPD [cf. @crema2022; @weninger2015].  
+
+```{r shoredate, echo = FALSE, fig.cap = "A) Example location relative to the isobases of the displacement curves.  B) The geologic displacement curves and the curve interpolated to the example location. C) Resulting shoreline date in light grey on the x-axis. The black line underneath marks the 95\\% HDR. The dashed line marks the elevation of the example location. The exponential function on the y-axis decays with ratio $\\lambda$ and represents the likely elevation of a site above sea-level when it was in use. ", out.width = "500px", fig.align="center", regfloat = TRUE}
+knitr::include_graphics(here("analysis/figures/shoredate.png"))
+```
+
+In much the same way as characteristics of the calibration curve can introduce bias to the SPD, the same is true for the summed shoreline dates, where the local trajectory of relative sea-level change effectively functions as the calibration curve. As the shoreline displacement curves are interpolated to the sites based on the site location along a south-west--north-east gradient, each site is effectively associated with a unique shoreline displacement curve, provided they are not located on the same isobase. With the analogy to the radiocarbon methodology, this would be equivalent to each date being associated with a unique calibration curve. As it would be computationally prohibitive to interpolate the shoreline displacement trajectory for each date to be simulated in the Monte Carlo procedure, one shoreline displacement curve was initially interpolated to the centre of each of a series of 2km wide line segments running perpendicular to the shoreline gradient between the extremes of the distribution of sites (Figure \@ref(fig:incpolys)). These intervals were then assigned a probability weight based on how the density of observed sites is distributed among them. 
+
+```{r incpolys, echo = FALSE, fig.cap = "Density of included surveyed sites and excavated sites dated by means of shoreline dating (n = 943) as distributed across the 2km wide line segments that run perpendicular to the shoreline gradient. A displacement curve has been interpolated to the centre of each segment for use in the Monte Carlo simulations below.", out.width = "500px", fig.align="center", regfloat = TRUE}
+knitr::include_graphics(here("analysis/figures/incpolys.png"))
+```
+
+The Monte Carlo simulation then starts by drawing a sample of calendar dates from the observed date range in the SSPD, equalling the number of shoreline dated sites, where the probability of drawing any individual year is determined by the null model of choice. Each sampled date is then assigned one of the pre-interpolated displacement curves, the probability of which is weighted by the density of observed sites within each 2km interval. The calendar date is then 'uncalibrated'---to follow the RSPD terminology---to an elevation range from which a single elevation value is then drawn with a uniform probability, using intervals of 5cm. This elevation value is then shoreline dated using the displacement curve for the relevant 2km interval. The dates are then summed, and the process repeated a total of 1000 times. Finally, the 97.5% highest and 2.5% lowest summed probability at each calendar year across all simulations is retrieved to create the 95% critical envelope. 
 
 
 # Results
 
-# Discussion
+```{r spduniform, echo = FALSE, fig.cap = "[Shoreline sims in this version have only been run 50/1000 times] A) Summed probability of shoreline dated sites (n = 934) compared to a uniform null model. B) Same as A, but with a exponential model. C) Summed probability of calibrated radiocarbon dates (n =, bins = 678) compared to a uniform null model. D) Same as C, but with a exponential null model.", out.width = "500px", fig.align="center", regfloat = TRUE}
+knitr::include_graphics(here("analysis/figures/spds_uniform.png"))
+```
 
-# Conclusion
+<!-- # Discussion -->
+
+<!-- # Conclusion -->
 
 <!-- The following line inserts a page break  -->
 

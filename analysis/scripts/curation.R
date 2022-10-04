@@ -113,9 +113,12 @@ curation_sites %>%
   filter(nonflint_prop < 0.9) %>%
 ggplot(aes(mean_date, curation_index_flint)) +
   geom_point() +
-  scale_x_continuous(breaks = c(seq(-9000,-4000, 1000)),
-                     limits = c(-9200, -3500)) +
-  geom_smooth(method = "loess")
+  scale_x_continuous(breaks = seq(-10000, 2000, 1000),
+                     limits = c(-10000, -2500)) +
+  # scale_y_continuous(limits = c(-0.5, 0.5)) +
+  ggrepel::geom_text_repel(aes(label = name)) +
+  geom_smooth(method = "loess", col = "black") +
+  theme_bw()
 
 curation_sites %>% select(name, mean_date, curation_index_flint) %>%  View()
 

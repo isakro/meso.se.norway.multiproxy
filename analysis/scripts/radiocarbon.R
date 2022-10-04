@@ -2,6 +2,8 @@ library(rcarbon)
 library(ADMUR)
 
 c14 <- read.csv(here::here("analysis/data/raw_data/radiocarbon.csv"))
+c14 <- c14[c14$context != "Food crust",]
+
 
 caldates <- calibrate(x = c14$c14_bp, normalised = FALSE,
                       errors = c14$error, calCurves = "intcal20")
@@ -36,25 +38,47 @@ expnull <- modelTest(caldates, errors = c14$error, bins = c14bins, nsim = nsim,
 
 plot(expnull, calendar = "BCAD")
 
+# save(expnull,
+#     file = here("analysis/data/derived_data/expnull.rds"))
+
+load(here::here("analysis/data/derived_data/expnull.rds"))
+
+rspdu2 <- ggplot(data = expnull$result, aes(x = (calBP-1950)*-1)) +
+  geom_ribbon(aes(ymin = lo, ymax = hi),
+              fill = "grey", alpha = 0.9) +
+  geom_line(data = expnull$fit, aes(x = (calBP-1950)*-1, y = PrDens),
+            linetype = "dashed", colour = "grey40") +
+  labs(x = "BCE", y = "Summed probability") +
+  scale_x_continuous(breaks = seq(-10000, 2000, 1000),
+                     limits = c(-10000, -2500)) +
+  geom_line(aes(y = PrDens)) +
+  theme_bw()
+
+
 unfnull <- modelTest(caldates, errors = c14$error, bins = c14bins, nsim = nsim,
                      timeRange = c(12000, 4000), model = "uniform",
                      runm = 100)
 plot(unfnull, calendar = "BCAD", xlim = c(-9300, -2000))
 
-ggplot(data = unfnull$result, aes(x = (calBP-1950)*-1)) +
+rspdu1 <- ggplot(data = unfnull$result, aes(x = (calBP-1950)*-1)) +
   geom_ribbon(aes(ymin = lo, ymax = hi),
-              colour = "lightgrey", alpha = 0.4) +
+              fill = "grey", alpha = 0.9) +
+  geom_line(data = unfnull$fit, aes(x = (calBP-1950)*-1, y = PrDens),
+            linetype = "dashed", colour = "grey40") +
   labs(x = "BCE", y = "Summed probability") +
-  xlim(c(-9300, -2500)) +
+  scale_x_continuous(breaks = seq(-10000, 2000, 1000),
+                     limits = c(-10000, -2500)) +
   geom_line(aes(y = PrDens)) +
   theme_bw()
 
 # save(unfnull,
 #     file = here("analysis/data/derived_data/unfnull.rds"))
 
+load(here::here("analysis/data/derived_data/unfnull.rds"))
+
 ggplot(data = expnull$result, aes(x = (calBP-1950)*-1)) +
     geom_ribbon(aes(ymin = lo, ymax = hi),
-                colour = "lightgrey", alpha = 0.5) +
+                colour = "grey", alpha = 0.9) +
   geom_line(aes(y = PrDens)) +
     theme_bw()
 

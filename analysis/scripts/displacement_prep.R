@@ -120,12 +120,16 @@ ggplot() +
 color = grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), invert = T)]
 cols <- sample(color, nrow(incpolys))
 
-plot(x = incpolys[1,]$disp[[1]][[1]]$bce, y = incpolys[1,]$disp[[1]][[1]]$lowerelev,
+plot(x = incpolys[1,]$disp[[1]][[1]]$bce,
+     y = incpolys[1,]$disp[[1]][[1]]$lowerelev,
      type = "l", col = cols[1])
-lines(incpolys[1,]$disp[[1]][[1]]$bce, incpolys[1,]$disp[[1]][[1]]$upperelev, col = cols[1])
+lines(incpolys[1,]$disp[[1]][[1]]$bce,
+      incpolys[1,]$disp[[1]][[1]]$upperelev, col = cols[1])
 
 for(i in 2:nrow(incpolys)){
-  lines(x = incpolys[i,]$disp[[1]][[1]]$bce, y = incpolys[i,]$disp[[1]][[1]]$lowerelev,
+  lines(x = incpolys[i,]$disp[[1]][[1]]$bce,
+        y = incpolys[i,]$disp[[1]][[1]]$lowerelev,
         type = "l", col = cols[i])
-  lines(incpolys[i,]$disp[[1]][[1]]$bce, incpolys[i,]$disp[[1]][[1]]$upperelev, col = cols[i])
+  lines(incpolys[i,]$disp[[1]][[1]]$bce,
+        incpolys[i,]$disp[[1]][[1]]$upperelev, col = cols[i])
 }

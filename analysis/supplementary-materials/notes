@@ -1,0 +1,9 @@
+While excavated volume is generally reported, there are some instances where this is not as clearly presented and had to be estimated based on descriptions of the excavation [e.g. @reitan2019]. These estimates might be slightly off, but are not considered to be of
+
+Following @crema2021, the null model is  This is very much analogous to how previous studies have employed Monte Carlo simulation to take into account the nature of the calibration curve when conducting palaeodemographic modelling using radiocarbon dates. However, in this case it is not only the spatially contingent variability in sea-level change that dictates how the simulation should be perfomed, but also the fact that not only the velocity but also the physical setting might introduce a bias in the estimates. Thus, to perform a comparable simulation, the Monte Carlo-generated envelope that is employed here is based on generating random points in the landscape under study. This done both to take account of the variable trajectory of sea-level change and the potentially variable altitudinal characteristics of the landscape. If some altitudes are more common than others, what might e observed when simply might be a reflection of the characteristics of the landscape, and not a demographic signal.  
+
+
+
+To generate a critical envelope from the 
+
+The curation index is based on. Sites which have signifcant typological indicators from multiple phases have therefore been excluded. Sites which are typologically unified, but where radiocarbon dates suggest multiple settlement phases. 
