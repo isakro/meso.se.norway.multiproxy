@@ -105,11 +105,12 @@ incpolys$id <- seq(1, nrow(incpolys))
 # Interpolate displacement curves to centroids, assigning the curve
 # to the polygon feature
 for(i in 1:nrow(incpolys)){
-  incpolys[i,]$disp <- list(shoredate::interpolate_curve(target = inccents[i,]))
+  incpolys[i,]$disp <- list(shoredate::interpolate_curve(target = inccents[i,],
+                                                         cal_reso = 5))
 }
-
+#
 # save(incpolys,
-#      file = here::here("analysis/data/derived_data/incpolys.RData"))
+#      file = here::here("analysis/data/derived_data/incpolys5.RData"))
 
 ggplot() +
   geom_sf(data = incpolys, aes(col = id)) +

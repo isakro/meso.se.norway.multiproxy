@@ -4,6 +4,8 @@ library(terra)
 library(here)
 library(shoredate)
 library(patchwork)
+library(ADMUR)
+library(DEoptimR)
 
 surveyed <- st_read(here("analysis/data/raw_data/surveyed_sites.gpkg"))
 excavated <- st_zm(read_sf(here("analysis/data/raw_data/excavated_sites.gpkg")))
@@ -154,37 +156,50 @@ step_reso <- 0.1
 shorelinedates <- list()
 for(i in 1:nrow(ssites)){
   print(paste(i, ssites$ask_id[i]))
-  shorelinedates[[i]] <- shoreline_date(ssites[i,],
-                                      dtm,
-                                      displacement_curves,
-                                      isobases,
-                                      expratio = 0.168,
-                                      reso = step_reso)
+  # shorelinedates[[i]] <- shoreline_date(,
+  #                                     dtm,
+  #                                     displacement_curves,
+  #                                     isobases,
+  #                                     expratio = 0.168,
+  #                                     reso = step_reso)
+
+    shorelinedates[[i]] <- shoredate::shoreline_date(
+    site = ssites[i,],
+    elev_raster = dtm,
+    elev_reso = step_reso,
+    cal_reso = 5,
+    sparse = TRUE)
 
 
 }
 
 sdates <- bind_rows(shorelinedates)
 
-# save(sdates, sdates_001,
-#       file = here("analysis/data/derived_data/sdates_0.RData"))
+# save(sdates,
+#       file = here("analysis/data/derived_data/sdates_5.rds"))
 
 # save(sdates,
 #       file = here("analysis/data/derived_data/sdates.RData"))
 
 load("analysis/data/derived_data/sdates.RData")
 
-spd <- sdates %>% filter(years < -2500)
+spd <- sdates %>% rename("bce" = "years") %>%  filter(bce < -2500)
 spdn <- spd %>% filter(probability != 0)
 spdn <- length(unique(spdn$site_name)) # Couldn't figure out n_distinct() here
 
-spd <- spd %>% group_by(years) %>%
+spd <- spd %>% group_by(bce) %>%
   filter(!is.na(probability)) %>% # Excludes Askeladden ID 108682-1 at 209masl
-  summarise(prob_sum = sum(probability))
+  group_by(site_name) %>%
+  mutate(prob_sum = sum(probability))
 
-exnoprob <- spd %>% filter(prob_sum > 0)
-lower_lim <- min(exnoprob$years)
-upper_lim <- max(exnoprob$years)
+exnoprob <- spd %>% filter(prob_sum > 0) %>%
+  group_by(bce) %>%
+  filter(probability != 0) %>%
+  summarise(prob_sum = sum(probability))
+# Excludes "159969"   "94301-1"  "144111-1" "144113-1" "144114-1",
+# "138457-1" "230584-0" "265781-0" "265784-0"
+lower_lim <- min(exnoprob$bce)
+upper_lim <- max(exnoprob$bce)
 
 exp <- TRUE
 
@@ -193,20 +208,24 @@ if(exp){
   # Exponential
   print("Exponential")
   fit <- nls(y ~ (exp(a + b * x)),
-             data = data.frame(x = exnoprob$years, y = exnoprob$prob_sum),
+             data = data.frame(x = exnoprob$bce, y = exnoprob$prob_sum),
              start = list(a = 0, b = 0))
-  est <- predict(fit, list(x = exnoprob$years))
-  predgrid <- data.frame(bce = exnoprob$years, prob_dens = est)
+  est <- predict(fit, list(x = exnoprob$bce))
+  predgrid <- data.frame(bce = exnoprob$bce, prob_dens = est)
   predgrid <- filter(predgrid, bce >= lower_lim & bce <= upper_lim)
 } else{
   print("Uniform")
   # # Uniform
-  predgrid <- data.frame(bce = exnoprob$years,
+  predgrid <- data.frame(bce = exnoprob$bce,
                          prob_dens = mean(exnoprob$prob_sum))
   predgrid <- filter(predgrid, bce > lower_lim & bce < upper_lim)
 }
 
-ggplot(spd) + geom_line(aes(x = years, y = prob_sum)) +
+ggplot(exnoprob) + geom_line(aes(x = bce, y = prob_sum)) +
+  geom_line(data = predgrid, aes(x = bce, y = prob_dens)) +
+  scale_x_continuous(breaks = seq(-10000, 2500, 500))
+
+ggplot(spd) + geom_line(aes(x = bce, y = prob_sum)) +
   geom_line(data = predgrid, aes(x = bce, y = prob_dens)) +
   scale_x_continuous(breaks = seq(-10000, 2500, 500))
 
@@ -252,7 +271,8 @@ names(random_dates) <- c("sample", "simn", "displacement_curve")
 random_dates$sample = sample(predgrid$bce, replace = TRUE,
                             size = ssize*nsim, prob = predgrid$prob_dens)
 random_dates$simn <- rep(1:nsim, each = nrow(random_dates)/nsim)
-random_dates$displacement_curve <- incpolys[sample(incpolys$id, replace = TRUE, size = ssize*nsim,
+random_dates$displacement_curve <- incpolys[sample(incpolys$id, replace = TRUE,
+                                                   size = ssize*nsim,
                               prob = incpolys$dens),]$disp[[1]]
 
 # do.call(reverse_shoredate(sample, incpolys[random_dates$incpoly,]$disp[[1]]), random_dates)
@@ -343,7 +363,8 @@ for (i in 1:nrow(random_dates)){
 
   shorelinedates[[i]] <- shoredate::shoreline_date(
     site = random_dates$simn[i],
-    reso = step_reso,
+    elev_reso = step_reso,
+    cal_reso = 1,
     elevation = random_dates$reverse_elevation[i],
     interpolated_curve = random_dates$displacement_curve[i],
     sparse = TRUE)
@@ -420,14 +441,16 @@ sspdu2 <- ggplot() +
   ggplot2::geom_ribbon(data = simdates, aes(x = bce, ymin = low, ymax = high),
               fill = "grey", alpha = 0.9) +
   # geom_line(data = simdates, aes(x = bce, y = mean), col = "red", lwd = 0.5) +
-  geom_line(data = spd, aes(x = years, y = prob_sum)) +
+  geom_line(data = exnoprob, aes(x = bce, y = prob_sum)) +
   geom_line(data = predgrid, aes(x = bce, y = prob_dens),
             linetype = "dashed", colour = "grey40") +
   scale_x_continuous(breaks = seq(-10000, 2000, 1000),
                      limits = c(-10000, -2500)) +
-  scale_y_continuous(limits = c(0, 0.7)) +
   labs(x = "BCE", y = "Summed probability") +
   theme_bw()
+
+ggplot(exnoprob) + geom_line(aes(x = bce, y = prob_sum)) +
+  geom_line(data = predgrid, aes(x = bce, y = prob_dens)) +
 
 (sspdu1 + sspdu2)  /
 (rspdu1 + rspdu2) + plot_annotation(tag_levels = 'A')
@@ -529,8 +552,38 @@ plt3.2 <- plt3 + theme(legend.position = "none")
 ((plt3.2 + plt2.2) / legend/ (plot_spacer() + plt1 + plot_spacer())) +
   plot_layout(guides = "collect", heights = c(3,0.5,3)) +
   plot_annotation(tag_levels = 'A')
-ggsave(here::here("analysis/figures/shoredate.png"),
-       units = "px", width = 2205*1.4, height = 2330)
+
+
+library(cowplot)
+
+toprow <- plot_grid(plt3.2, plt2.2, labels = c('A', 'B'))
+bottomrow <- plot_grid(NULL, plt1, NULL, ncol = 3,
+                       rel_widths = c(1.2, 2, 1.2),
+                       labels = c('', 'C', ""))
+
+cowplot::plot_grid(toprow, legend, bottomrow, nrow = 3,
+                   rel_heights = c(5/11, 1/11, 5/11))
+
+ggsave(here::here("analysis/figures/shoredate.png"), width = 30, height = 30,
+       units = 'cm')
+
+
+gridExtra::grid.arrange(gridExtra::arrangeGrob(plt3.2 , plt2.2, nrow = 1),
+                        legend, plt1, nrow = 3, widths = c(2, 2, 1),
+                        heights = c(10,1, 10))
+
+island_hist <- grid.arrange(arrangeGrob(hull_isl +
+                             theme(legend.position = 'none'),
+                             buff_isl + theme(legend.position = 'none'),
+                             sites_isl + theme(legend.position = 'none'), nrow = 1),
+                            legend, nrow = 2, heights = c(10,1))
+
+
+
+
+ggsave('../figures/island_hist.png', island_hist, width = 15, height = 8,
+       units = 'cm', dpi = 600)
+
 
 plt2.2 <- plt2 + guides(linetype = guide_legend(nrow=2, byrow=TRUE),
               colour = guide_legend(nrow=2, byrow=TRUE)) +
@@ -579,3 +632,146 @@ isobase_length = 9000000
 
   # Combine these into a line and update the temporary data frame
   target_isobase <- sf::st_cast(pts, to = 'LINESTRING')
+
+
+# Prepare shoreline spd for admur
+
+tst <- exnoprob[1:500,]
+
+spd <- as.data.frame(tst)
+spd$prob_sum <- spd$prob_sum/sum(spd$prob_sum)
+
+spd$years <- (spd$years-1950)*-1
+maxbp <- max(spd$years)
+minbp <- min(spd$years)
+
+
+row.names(spd) <- spd$years
+spd[1] <- NULL
+names(spd) <- NA
+
+
+spd$years <- (spd$years-1950)*-1
+maxbp <- max(spd$years)
+minbp <- min(spd$years)
+
+load("analysis/data/derived_data/sdates.rds")
+
+spd <- sdates %>% filter(bce < -2500) %>%
+  group_by(bce) %>%
+  filter(!is.na(probability)) %>% # Excludes Askeladden ID 108682-1 at 209masl
+  group_by(site_name) %>%
+  mutate(prob_sum_site = sum(probability)) %>%
+  filter(prob_sum_site > 0) %>%
+  group_by(bce) %>%
+  mutate(prob_sum = sum(probability)) %>%
+  filter(prob_sum > 0)
+
+# Prep data for JDEoptim
+pd <- sdates %>% filter(bce < -2500) %>%
+  group_by(bce) %>%
+  filter(!is.na(probability)) %>%
+  mutate(prob_sum = sum(probability)) %>%
+  # ungroup() %>%
+  filter(prob_sum > 0) %>%
+  group_by(site_name) %>%
+  mutate(row = row_number()) %>%
+  pivot_wider(names_from = site_name, values_from = probability)
+
+pd <- as.data.frame(pd[!(is.na(pd[,4])),])
+row.names(pd) <- pd[,"bce"]
+# yrnames <- pd[,"bce"]
+pd <- select(pd, -bce, -prob_sum, -row)
+pd <- pd[, which(colSums(pd) != 0)]
+
+# scaledpd <- as.data.frame(scale(pd, center = FALSE, scale = colSums(pd)))
+# row.names(scaledpd) <- yrnames
+
+
+spd <- spd %>%
+  group_by(bce) %>%
+  summarise(prob_sum = sum(probability)) %>%
+  column_to_rownames(var = "bce")
+
+maxbce <- max(as.numeric(row.names(spd)))
+minbce <- min(as.numeric(row.names(spd)))
+
+cpl1 <- JDEoptim(lower = 0, upper = 1, fn = objectiveFunction,
+                 PDarray = pd, type = 'CPL', NP = 20, trace = TRUE)
+
+start_time <- Sys.time()
+cpl2 <- JDEoptim(lower = rep(0,3), upper = rep(1,3), fn = objectiveFunction,
+                 PDarray = pd, type = 'CPL', NP = 60, trace = TRUE)
+end_time <- Sys.time()
+end_time - start_time
+
+start_time <- Sys.time()
+cpl3 <- JDEoptim(lower = rep(0,5), upper = rep(1,5), fn = objectiveFunction,
+                 PDarray = pd, type = 'CPL', NP = 100, trace = TRUE)
+end_time <- Sys.time()
+(cpl3t <- end_time - start_time)
+
+start_time <- Sys.time()
+cpl4 <- JDEoptim(lower = rep(0,7), upper = rep(1,7), fn = objectiveFunction,
+                  PDarray = pd, type = 'CPL', NP = 140, trace =TRUE)
+end_time <- Sys.time()
+end_time - start_time
+(cpl4t <- end_time - start_time)
+
+exp <- JDEoptim(lower = -0.01, upper = 0.01, fn=objectiveFunction,
+                PDarray = pd, type = 'exp', NP = 20)
+uniform <- objectiveFunction(NULL, pd, type='uniform')
+
+save(cpl1, cpl2, cpl3, cpl4, file = here::here("analysis/data/derived_data/cpl2.RData"))
+# save(cpl1, cpl2, file = here::here("analysis/data/derived_data/cpl.RData"))
+
+h1 <- CPLparsToHinges(pars=cpl1$par, years=minbce:maxbce)
+h2 <- CPLparsToHinges(pars=cpl2$par, years=minbce:maxbce)
+h3 <- CPLparsToHinges(pars=cpl3$par, years=minbp:maxbp)
+h4 <- CPLparsToHinges(pars=cpl4$par, years=minbce:maxbce)
+
+ggplot() + geom_point(data = h4, aes(x = year, y = pdf))
+
+cols <- c('firebrick','orchid2','coral2','steelblue','goldenrod3')
+
+plotPD(spd/(sum(spd) * 5))
+lines(h1$year, h1$pdf, lwd=2, col=cols[1])
+lines(h2$year, h2$pdf, lwd=2, col=cols[2])
+lines(h3$year, h3$pdf, lwd=2, col=cols[3])
+lines(h4$year, h4$pdf, lwd=2, col=cols[4])
+
+
+modelpd1 <- convertPars(pars = cpl1$par, years = minbce:maxbce, type='CPL')
+modelpd2 <- convertPars(pars = cpl2$par, years = minbce:maxbce, type='CPL')
+modelpd3 <- convertPars(pars = cpl3$par, years = minbce:maxbce, type='CPL')
+modelpd4 <- convertPars(pars = cpl4$par, years = minbce:maxbce, type='CPL')
+modelexp <- convertPars(pars = exp$par, years = minbce:maxbce, type='CPL')
+
+plotPD(spd/(sum(spd) * 5)) # Remember to multiply by calendar resolution
+lines(modelpd1$year, modelpd1$pdf, col = cols[1], lwd=2)
+lines(modelpd2$year, modelpd2$pdf, col = cols[2], lwd=2)
+lines(modelpd3$year, modelpd3$pdf, col = cols[3], lwd=2)
+lines(modelpd4$year, modelpd4$pdf, col = cols[4], lwd=2)
+
+ggplot() +
+  geom_line(data = spd/(sum(spd)*5), aes(x = as.numeric(row.names(spd)), y = prob_sum)) +
+  geom_line(data = modelpd1, aes(x = year, y = pdf), col = cols[1]) +
+  geom_line(data = modelpd2, aes(x = year, y = pdf), col = cols[2])+
+  geom_line(data = modelpd3, aes(x = year, y = pdf), col = cols[3]) +
+  # geom_line(data = modelpd4, aes(x = year, y = pdf), col = cols[4]) +
+  geom_line(data = modelexp, aes(x = year, y = pdf))
+
+data.frame(L1= -cpl1$value,
+           L2= -cpl2$value,
+           L3= -cpl3$value,
+           L4= -cpl4$value,
+           Lexp= -exp$value,
+           Lunif= -uniform)
+
+BIC.1 <- 1*log(303) - 2*(-cpl1$value)
+BIC.2 <- 3*log(303) - 2*(-cpl2$value)
+BIC.3 <- 5*log(303) - 2*(-cpl3$value)
+BIC.4 <- 7*log(303) - 2*(-cpl4$value)
+BIC.exp <- 1*log(303) - 2*(-exp$value)
+BIC.uniform <- 0 - 2*(-uniform)
+data.frame(BIC.1,BIC.2,BIC.3,BIC.4,BIC.exp,BIC.uniform)
